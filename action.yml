@@ -20,11 +20,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-
     - name: Set up Git
       shell: bash
       run: |
@@ -87,16 +82,15 @@ runs:
       shell: bash
       run: |
         cd target_repo_clone
-        # Check for changes before committing
+        git add .
+        
         if ! git diff --staged --quiet; then
-          git add .
+          echo "Content has changed. Committing and pushing..."
           git commit -m "feat(docs): Sync project files from ${{ github.repository }}"
           git push origin ${{ env.BRANCH_NAME }}
         else
-          # This can happen if the parser script runs but produces no new files
-          # or if the PROJECT.md content is identical.
-          echo "No net changes detected to commit."
-          # Ensure FILES_ADDED is 0 so the PR step is skipped
+          echo "No net content changes detected. Skipping commit and PR."
+          # Set flag to 0 so the PR step is skipped
           echo "FILES_ADDED=0" >> $GITHUB_ENV
         fi
 

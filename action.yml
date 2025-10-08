@@ -60,18 +60,22 @@ runs:
             
             cp ../PROJECT.md "$FINAL_FILENAME"
             echo "Copied PROJECT.md to $FINAL_FILENAME"
+
             FILES_ADDED=1
         fi
 
         # --- RULE 2: PROCESS WORKLOG.MD (PARSE AND SPLIT) ---
         if [ -f ../WORKLOG.md ]; then
-            echo "Parsing WORKLOG.md into separate date files..."
+            echo "Processing PROJECT.md (overwrite mode)..."
             DEST_DIR="${{ inputs.destination_path }}/worklog"
+            mkdir -p "$DEST_DIR"
             
-            # The action's directory is available at ${{ github.action_path }}
-            # Run the python script to do the complex parsing
-            python ${{ github.action_path }}/parser.py ../WORKLOG.md "$REPO_NAME" "$DEST_DIR"
+            # The filename is now static, no suffix needed
+            FINAL_FILENAME="$DEST_DIR/${REPO_NAME}-WORKLOG.md"
             
+            cp ../WORKLOG.md "$FINAL_FILENAME"
+            echo "Copied WORKLOG.md to $FINAL_FILENAME"
+
             FILES_ADDED=1
         fi
         

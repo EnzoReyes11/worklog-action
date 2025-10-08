@@ -49,7 +49,7 @@ def parse_worklog(source_file_path, repo_name, dest_dir):
             sanitized_date = re.sub(r'[^0-9a-zA-Z-]', '-', date_str)
 
         # Create the new filename and full path
-        new_filename = f"{sanitized_date}-{repo_name}-WORKLOG.md"
+        new_filename = f"{repo_name}-WORKLOG-{sanitized_date}.md"
         new_filepath = os.path.join(dest_dir, new_filename)
 
         # Combine the header with the single date entry

@@ -12,7 +12,7 @@ inputs:
   destination_path:
     description: 'The folder path in the target repo to place the new file (e.g., "worklogs").'
     required: false
-    default: 'worklogs'
+    default: 'content'
   token:
     description: 'A Personal Access Token (PAT) with repo scope for the target repository.'
     required: true
@@ -31,72 +31,74 @@ runs:
       run: |
         git clone https://x-access-token:${{ inputs.token }}@github.com/${{ inputs.target_repo }}.git target_repo_clone
 
-    - name: Create Branch, Find Filename, and Copy File
+    - name: Create Branch and Process Files
       shell: bash
       run: |
         cd target_repo_clone
+        REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
         
-        # Sanitize the source repo name to use in branch and file names
-        SANITIZED_REPO_NAME=$(echo "${{ github.repository }}" | tr '/' '-')
-        
-        # Create a unique branch name for this update to avoid collisions
-        BRANCH_NAME="worklog/${SANITIZED_REPO_NAME}-${{ github.sha }}"
+        BRANCH_NAME="update/${REPO_NAME}-${{ github.sha }}"
         git checkout -b $BRANCH_NAME
         echo "✅ Created new branch: $BRANCH_NAME"
+        
+        FILES_ADDED=0
 
-        # Ensure the destination directory exists
-        mkdir -p "${{ inputs.destination_path }}"
+        if [ -f ../WORKLOG.md ]; then
+            echo "Processing WORKLOG.md..."
+            DEST_SUBDIR="${{ inputs.destination_path }}/worklog"
+            mkdir -p "$DEST_SUBDIR"
+            BASE_FILENAME="$DEST_SUBDIR/${REPO_NAME}-WORKLOG"
+            EXTENSION=".md"
+            FINAL_FILENAME="${BASE_FILENAME}${EXTENSION}"
+            COUNTER=1
+            while [ -f "$FINAL_FILENAME" ]; do
+              FINAL_FILENAME="${BASE_FILENAME}-${COUNTER}${EXTENSION}"
+              COUNTER=$((COUNTER + 1))
+            done
+            cp ../WORKLOG.md "$FINAL_FILENAME"
+            echo "Copied WORKLOG.md to $FINAL_FILENAME"
+            FILES_ADDED=1
+        fi
 
-        # Define the base name and extension for the new file
-        BASE_FILENAME="${{ inputs.destination_path }}/${SANITIZED_REPO_NAME}-WORKLOG"
-        EXTENSION=".md"
+        if [ -f ../PROJECT.md ]; then
+            echo "Processing PROJECT.md..."
+            DEST_SUBDIR="${{ inputs.destination_path }}/project"
+            mkdir -p "$DEST_SUBDIR"
+            BASE_FILENAME="$DEST_SUBDIR/${REPO_NAME}-PROJECT"
+            EXTENSION=".md"
+            FINAL_FILENAME="${BASE_FILENAME}${EXTENSION}"
+            COUNTER=1
+            while [ -f "$FINAL_FILENAME" ]; do
+              FINAL_FILENAME="${BASE_FILENAME}-${COUNTER}${EXTENSION}"
+              COUNTER=$((COUNTER + 1))
+            done
+            cp ../PROJECT.md "$FINAL_FILENAME"
+            echo "Copied PROJECT.md to $FINAL_FILENAME"
+            FILES_ADDED=1
+        fi
         
-        # Start with the default filename (e.g., "worklogs/owner-repo-WORKLOG.md")
-        FINAL_FILENAME="${BASE_FILENAME}${EXTENSION}"
-        COUNTER=1
-        
-        # Loop while a file with the current name already exists
-        while [ -f "$FINAL_FILENAME" ]; do
-          FINAL_FILENAME="${BASE_FILENAME}-${COUNTER}${EXTENSION}"
-          COUNTER=$((COUNTER + 1))
-        done
-        
-        echo "✅ Final filename will be: $FINAL_FILENAME"
-        
-        # Copy the worklog from the source repo's workspace
-        cp ../WORKLOG.md "$FINAL_FILENAME"
-        
-        # Save variables for subsequent steps
-        echo "FINAL_FILENAME=$FINAL_FILENAME" >> $GITHUB_ENV
+        echo "FILES_ADDED=$FILES_ADDED" >> $GITHUB_ENV
         echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
     - name: Commit and Push Changes
+      if: env.FILES_ADDED == '1'
       shell: bash
       run: |
         cd target_repo_clone
         git add .
-        
-        if ! git diff --staged --quiet; then
-          git commit -m "feat(worklog): Add ${{ env.FINAL_FILENAME }} from ${{ github.repository }}"
-          git push origin ${{ env.BRANCH_NAME }}
-        else
-          echo "No changes detected to commit."
-        fi
+        git commit -m "feat(docs): Sync project files from ${{ github.repository }}"
+        git push origin ${{ env.BRANCH_NAME }}
 
     - name: Create Pull Request
+      if: env.FILES_ADDED == '1'
       shell: bash
       env:
-        # Use the provided PAT to authenticate the GitHub CLI
         GH_TOKEN: ${{ inputs.token }}
       run: |
-        # Only try to create a PR if the new branch was actually pushed
-        if git ls-remote --heads origin ${{ env.BRANCH_NAME }} | grep ${{ env.BRANCH_NAME }}; then
-          gh pr create --repo ${{ inputs.target_repo }} \
-             --title "New Worklog from ${{ github.repository }}" \
-             --body "Automated PR to add worklog file: `${{ env.FINAL_FILENAME }}`." \
-             --base "${{ inputs.target_branch }}" \
-             --head "${{ env.BRANCH_NAME }}"
-          echo "✅ Pull request created."
-        else
-          echo "Branch was not pushed, skipping PR creation."
-        fi
+        gh pr create --repo ${{ inputs.target_repo }} \
+           --title "Sync project files from ${{ github.repository }}" \
+           --body "Automated PR to sync updated project documentation." \
+           --base "${{ inputs.target_branch }}" \
+           --head "${{ env.BRANCH_NAME }}"
+        echo "✅ Pull request created."
+

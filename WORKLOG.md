@@ -2,12 +2,11 @@
 
 ### 08/10/25
 Work done: 
-- Detect changes in PROJECT.md. Overwrite in the target directory.
-- Detect changes in WORKLOG.md. It will parse date subtitles and their items, then
-create a file for each.
+- Tried having PROJECT and WORKLOG files with different behaviors. WORKLOG would 
+be parsed and different date items would create different files. But I'm discarding this
+solution. Instead I'm going to create just one file for the WORKLOG and one for PROJECT.
+Then, the Astro blog would parse WORKLOG and create the different blog posts programmatically.
+- Detect both PROJECT and WORKLOG changes. Overwrite into target destination.
 
-Errors:
- - Since the last change to parse by date, it is not generating the branch and 
- PR in the target repo.
 
 

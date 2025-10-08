@@ -7,7 +7,7 @@ I use it to maintain a portfolio and blog in Astro.
 - `WORKLOG.md` are the blog files. It looks for the latest date and adds that into the content.
 
 
-![README](https://github.com/EnzoReyes11/worklog-action/README.md)
+![README](https://github.com/EnzoReyes11/worklog-action/blob/main/README.md)
 
 
 

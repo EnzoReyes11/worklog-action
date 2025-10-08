@@ -9,12 +9,11 @@ A reusable GitHub Action that automatically syncs `WORKLOG.md` and `PROJECT.md` 
 This action is designed to be used in multiple "source" repositories. When triggered, it performs the following steps:
 
 1.  **Detects Changes**: The action runs whenever a push or pull request modifies `WORKLOG.md` or `PROJECT.md` in a source repository.
-2.  **Creates a Branch**: It clones the central "target" repository and creates a unique, temporary branch for the incoming update (e.g., `update/my-repo-name-a1b2c3d`).
-3.  **Processes Files Conditionally**: It checks which file triggered the workflow:
+1.  **Creates a Branch**: It clones the central "target" repository and creates a unique, temporary branch for the incoming update (e.g., `update/my-repo-name-a1b2c3d`).
+1.  **Processes Files Conditionally**: It checks which file triggered the workflow:
     * If `WORKLOG.md` was changed, it copies it to the `<destination_path>/worklog/` subdirectory in the target repo.
     * If `PROJECT.md` was changed, it copies it to the `<destination_path>/project/` subdirectory.
-4.  **Versions Filenames**: To avoid overwriting existing files, the action adds a version suffix. If `my-repo-WORKLOG.md` already exists, the new file will be named `my-repo-WORKLOG-1.md`, and so on.
-5.  **Opens a Pull Request**: Finally, it pushes the new branch and opens a single pull request in the target repository containing all the file changes from the run. This allows you to review and approve the updates before they are merged.
+1.  **Opens a Pull Request**: Finally, it pushes the new branch and opens a single pull request in the target repository containing all the file changes from the run. This allows you to review and approve the updates before they are merged.
 
 ***
 
@@ -25,10 +24,10 @@ To use this action, you need to set up two things: the prerequisites in your tar
 ### ## Prerequisites
 
 1.  **Create a Central Repository**: Designate a GitHub repository that will collect all the synced files.
-2.  **Generate a Personal Access Token (PAT)**:
+1.  **Generate a Personal Access Token (PAT)**:
     * Go to **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**.
     * Generate a new token with the full **`repo`** scope. This is required for the action to create branches and open pull requests.
-3.  **Store the PAT as a Secret**:
+1.  **Store the PAT as a Secret**:
     * In **each source repository** that will use this action, go to **Settings** > **Secrets and variables** > **Actions**.
     * Create a new repository secret named `SYNC_ACTION_PAT` and paste your PAT as the value.
 

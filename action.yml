@@ -61,7 +61,7 @@ runs:
 
         # --- RULE 2: PROCESS WORKLOG.MD (PARSE AND SPLIT) ---
         if [ -f ../WORKLOG.md ]; then
-            echo "Processing PROJECT.md (overwrite mode)..."
+            echo "Processing WORKlOG.md (overwrite mode)..."
             DEST_DIR="${{ inputs.destination_path }}/worklog"
             mkdir -p "$DEST_DIR"
             

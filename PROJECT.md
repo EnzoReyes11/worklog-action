@@ -10,6 +10,10 @@ I use it to maintain a portfolio and blog in Astro.
 ![README](https://github.com/EnzoReyes11/worklog-action/blob/main/README.md)
 
 
+## Backlog
+
+- Investigate how to configure the action on a private repo.
+
 
 
 

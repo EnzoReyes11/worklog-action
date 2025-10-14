@@ -1,5 +1,12 @@
 # Worklog
 
+### 14/10/25
+I haven't done any work with the action today. But discovered that Private repos
+are unable to run it. As when it runs, it clones the (private) repo, and that requires
+some kind of authentication.
+
+I've added a item on the backlog to investigate how to work with private repos.
+
 ### 08/10/25
 Work done: 
 - Tried having PROJECT and WORKLOG files with different behaviors. WORKLOG would 

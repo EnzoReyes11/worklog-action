@@ -60,5 +60,42 @@ jobs:
         uses: actions/checkout@v4
 
       # Step 2: Use the reusable sync action
-      -
+      - name: Sync Files
+        uses: enzo-r/worklog-action@main
+        with:
+          target_repo: 'your-owner/central-repo'
+          token: ${{ secrets.SYNC_ACTION_PAT }}
 
+***
+
+## Bulk Setup Utility 🛠️
+
+If you have many repositories to sync, you can use the included `sync.sh` script to quickly add the required `SYNC_ACTION_PAT` secret to all of them using the GitHub CLI (`gh`).
+
+### 1. Prerequisites
+- **GitHub CLI (gh)**: Ensure you have the [GitHub CLI](https://cli.github.com/) installed and authenticated:
+  ```bash
+  gh auth login
+  ```
+
+### 2. Configuration
+1. **Repository List**: Create a file named `repos.txt` in the root of this project. Include the full name of each repository you want to update, with one repository per line:
+   ```text
+   user-name/my-cool-project
+   user-name/another-project
+   ```
+2. **Environment Variables**: Copy the example environment file and fill in your actual credentials:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` to set:
+   - `SECRET_NAME`: Usually `SYNC_ACTION_PAT`
+   - `SECRET_VALUE`: Your personal access token (PAT)
+
+### 3. Run the Script
+Make the script executable and run it:
+```bash
+chmod +x sync.sh
+./sync.sh
+```
+This will automatically iterate through your repository list and use `gh secret set` to configure each one.

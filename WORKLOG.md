@@ -1,5 +1,8 @@
 # Worklog
 
+### 20/03/26
+Added a script to sync the PAT into the repos.
+
 ### 14/10/25
 I haven't done any work with the action today. But discovered that Private repos
 are unable to run it. As when it runs, it clones the (private) repo, and that requires

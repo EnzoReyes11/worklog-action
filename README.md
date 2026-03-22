@@ -1,41 +1,60 @@
 # Project & Worklog Sync Action
 
-A reusable GitHub Action that automatically syncs `WORKLOG.md` and `PROJECT.md` files from multiple source repositories to a single, centralized repository. 
+A reusable GitHub Action that automatically syncs `WORKLOG.md` and `PROJECT.md` files from multiple source repositories into a single centralized repository via pull requests.
 
-***
+Designed for maintaining a portfolio or blog (e.g. Astro): each project repo holds its own documentation, and this action funnels it all into one place automatically.
 
-## How It Works 📋
+---
 
-This action is designed to be used in multiple "source" repositories. When triggered, it performs the following steps:
+## What Gets Synced
 
-1.  **Detects Changes**: The action runs whenever a push or pull request modifies `WORKLOG.md` or `PROJECT.md` in a source repository.
-1.  **Creates a Branch**: It clones the central "target" repository and creates a unique, temporary branch for the incoming update (e.g., `update/my-repo-name-a1b2c3d`).
-1.  **Processes Files Conditionally**: It checks which file triggered the workflow:
-    * If `WORKLOG.md` was changed, it copies it to the `<destination_path>/worklog/` subdirectory in the target repo.
-    * If `PROJECT.md` was changed, it copies it to the `<destination_path>/project/` subdirectory.
-1.  **Opens a Pull Request**: Finally, it pushes the new branch and opens a single pull request in the target repository containing all the file changes from the run. This allows you to review and approve the updates before they are merged.
+| File | Purpose | Destination in target repo |
+|---|---|---|
+| `PROJECT.md` | Describes the project (portfolio entry) | `<destination_path>/project/<repo-name>-PROJECT.md` |
+| `WORKLOG.md` | Work diary / blog entries with dated items | `<destination_path>/worklog/<repo-name>-WORKLOG.md` |
 
-***
+Both files are **overwritten** on each sync (not appended). The sync only triggers and opens a PR when file content actually changes.
 
-## Usage 🚀
+---
 
-To use this action, you need to set up two things: the prerequisites in your target repository and a caller workflow in each source repository.
+## How It Works
 
-### ## Prerequisites
+1. A push to `main` in a source repo modifies `WORKLOG.md` or `PROJECT.md`
+2. The caller workflow triggers and runs this action
+3. The action clones your central (target) repository
+4. It creates a branch named `update/<source-repo-name>-<sha>`
+5. It copies the changed files to the appropriate subdirectory
+6. It opens a pull request in the target repo for review
 
-1.  **Create a Central Repository**: Designate a GitHub repository that will collect all the synced files.
-1.  **Generate a Personal Access Token (PAT)**:
-    * Go to **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**.
-    * Generate a new token with the full **`repo`** scope. This is required for the action to create branches and open pull requests.
-1.  **Store the PAT as a Secret**:
-    * In **each source repository** that will use this action, go to **Settings** > **Secrets and variables** > **Actions**.
-    * Create a new repository secret named `SYNC_ACTION_PAT` and paste your PAT as the value.
+---
 
-### ## Caller Workflow Example
+## Quick Start
 
-In every source repository where you want to monitor `WORKLOG.md` or `PROJECT.md`, create the following file:
+### Step 1 — Set up the central repository
+
+Designate one GitHub repository to collect all synced files. No special setup is needed inside it.
+
+### Step 2 — Generate a Personal Access Token (PAT)
+
+1. Go to **GitHub Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**
+2. Generate a new token with the full **`repo`** scope
+3. Copy the token value — you'll need it in the next step
+
+### Step 3 — Add the secret to each source repository
+
+In **every source repository** that will use this action:
+
+1. Go to **Settings** > **Secrets and variables** > **Actions**
+2. Click **New repository secret**
+3. Name: `WORKLOG_ACTION_TOKEN`
+4. Value: paste your PAT
+
+### Step 4 — Add the workflow file to each source repository
+
+Create the following file in each source repository:
 
 #### `.github/workflows/sync-files.yml`
+
 ```yaml
 name: 'Sync Project Files on Change'
 
@@ -46,56 +65,74 @@ on:
     paths:
       - 'WORKLOG.md'
       - 'PROJECT.md'
-  pull_request:
-    paths:
-      - 'WORKLOG.md'
-      - 'PROJECT.md'
 
 jobs:
   sync_files_job:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Check out the repository's code so the action can find the files
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      # Step 2: Use the reusable sync action
       - name: Sync Files
-        uses: enzo-r/worklog-action@main
+        uses: EnzoReyes11/worklog-action@main
         with:
-          target_repo: 'your-owner/central-repo'
-          token: ${{ secrets.SYNC_ACTION_PAT }}
+          target_repo: 'your-owner/central-repo'   # <-- your central repository
+          token: ${{ secrets.WORKLOG_ACTION_TOKEN }}
+          # destination_path: 'files'              # optional, defaults to 'files'
+          # target_branch: 'main'                  # optional, defaults to 'main'
+```
 
-***
+That's it. The next time `WORKLOG.md` or `PROJECT.md` is pushed on `main`, a PR will be opened in your central repo.
 
-## Bulk Setup Utility 🛠️
+---
 
-If you have many repositories to sync, you can use the included `sync.sh` script to quickly add the required `SYNC_ACTION_PAT` secret to all of them using the GitHub CLI (`gh`).
+## Action Inputs
 
-### 1. Prerequisites
-- **GitHub CLI (gh)**: Ensure you have the [GitHub CLI](https://cli.github.com/) installed and authenticated:
+| Input | Required | Default | Description |
+|---|---|---|---|
+| `target_repo` | Yes | — | Central repo in `owner/repo` format |
+| `token` | Yes | — | PAT with `repo` scope for the target repo |
+| `target_branch` | No | `main` | Branch in the target repo to open the PR against |
+| `destination_path` | No | `files` | Base folder in the target repo where files land |
+
+---
+
+## Bulk Setup Utility
+
+If you have many repositories to configure, use the included `sync.sh` script to set the PAT secret across all of them at once using the GitHub CLI.
+
+> **Note:** This script only sets the secret. You still need to add the workflow file (Step 4 above) to each repository manually or via automation.
+
+### Prerequisites
+
+- [GitHub CLI](https://cli.github.com/) installed and authenticated:
   ```bash
   gh auth login
   ```
 
-### 2. Configuration
-1. **Repository List**: Create a file named `repos.txt` in the root of this project. Include the full name of each repository you want to update, with one repository per line:
-   ```text
-   user-name/my-cool-project
-   user-name/another-project
+### Configuration
+
+1. Create `repos.txt` listing one repository per line (see `repos.txt.example`):
    ```
-2. **Environment Variables**: Copy the example environment file and fill in your actual credentials:
+   your-username/repo-one
+   your-username/repo-two
+   ```
+
+2. Create a `.env` file (copy from `.env.example`):
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` to set:
-   - `SECRET_NAME`: Usually `SYNC_ACTION_PAT`
-   - `SECRET_VALUE`: Your personal access token (PAT)
+   Set the following in `.env`:
+   ```
+   SECRET_NAME=WORKLOG_ACTION_TOKEN
+   SECRET_VALUE=ghp_your_token_here
+   ```
 
-### 3. Run the Script
-Make the script executable and run it:
+### Run
+
 ```bash
 chmod +x sync.sh
 ./sync.sh
 ```
-This will automatically iterate through your repository list and use `gh secret set` to configure each one.
+
+The script iterates through `repos.txt` and runs `gh secret set` for each repository.

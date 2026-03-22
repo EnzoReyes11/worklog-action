@@ -28,8 +28,14 @@ runs:
 
     - name: Clone Target Repository
       shell: bash
+      env:
+        TOKEN: ${{ inputs.token }}
+        TARGET_BRANCH: ${{ inputs.target_branch }}
+        TARGET_REPO: ${{ inputs.target_repo }}
       run: |
-        git clone https://x-access-token:${{ inputs.token }}@github.com/${{ inputs.target_repo }}.git target_repo_clone
+        git clone --branch "$TARGET_BRANCH" \
+          "https://x-access-token:${TOKEN}@github.com/${TARGET_REPO}.git" \
+          target_repo_clone
 
     - name: Create Branch and Process Files
       shell: bash
@@ -59,9 +65,9 @@ runs:
             FILES_ADDED=1
         fi
 
-        # --- RULE 2: PROCESS WORKLOG.MD (PARSE AND SPLIT) ---
+        # --- RULE 2: PROCESS WORKLOG.MD (OVERWRITE) ---
         if [ -f ../WORKLOG.md ]; then
-            echo "Processing WORKlOG.md (overwrite mode)..."
+            echo "Processing WORKLOG.md (overwrite mode)..."
             DEST_DIR="${{ inputs.destination_path }}/worklog"
             mkdir -p "$DEST_DIR"
             

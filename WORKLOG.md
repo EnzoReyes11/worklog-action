@@ -3,7 +3,7 @@
 ### 22/03/26
 Removed parser.py, it was dead code.
 Several improvements and small fixes.
-Updated the README
+Updated the README.
 
 #### Next Steps:
 - Add a way to sync private repos.

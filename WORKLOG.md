@@ -1,5 +1,15 @@
 # Worklog
 
+### 22/03/26
+Removed parser.py, it was dead code.
+Several improvements and small fixes.
+Updated the README
+
+#### Next Steps:
+- Add a way to sync private repos.
+- Add /docs directory with Backstage docs.
+
+
 ### 20/03/26
 Added a script to sync the PAT into the repos.
 

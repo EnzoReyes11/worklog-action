@@ -7,7 +7,7 @@ if [ -f .env ]; then
 fi
 
 # Secret configuration (if not set in .env or environment, fallback to defaults)
-SECRET_NAME=${SECRET_NAME:-"fill me"}
+SECRET_NAME=${SECRET_NAME:-"WORKLOG_ACTION_TOKEN"}
 # SECRET_VALUE must be provided via the environment
 if [ -z "$SECRET_VALUE" ]; then
     echo "Error: SECRET_VALUE is not set. Please set it in your .env file or environment."

@@ -46,7 +46,7 @@ In **every source repository** that will use this action:
 
 1. Go to **Settings** > **Secrets and variables** > **Actions**
 2. Click **New repository secret**
-3. Name: `WORKLOG_ACTION_TOKEN`
+3. Name: `WORKLOG_ACTION_PAT`
 4. Value: paste your PAT
 
 _Note: there is a script that can be used to do this. See [Bulk Setup Utility](#bulk-setup-utility) ._
@@ -79,7 +79,7 @@ jobs:
         uses: EnzoReyes11/worklog-action@main
         with:
           target_repo: 'your-owner/central-repo'   # <-- your central repository
-          token: ${{ secrets.WORKLOG_ACTION_TOKEN }}
+          token: ${{ secrets.WORKLOG_ACTION_PAT }}
           # destination_path: 'files'              # optional, defaults to 'files'
           # target_branch: 'main'                  # optional, defaults to 'main'
 ```
@@ -126,7 +126,7 @@ If you have many repositories to configure, use the included `bulk-setup.sh` scr
    ```
    Set the following in `.env`:
    ```
-   SECRET_NAME=WORKLOG_ACTION_TOKEN
+   SECRET_NAME=WORKLOG_ACTION_PAT
    SECRET_VALUE=ghp_your_token_here
    ```
 

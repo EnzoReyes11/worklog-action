@@ -27,4 +27,4 @@ jobs:
           destination_path: 'content' 
 
           # The token you stored in secrets
-          token: ${{ secrets.WORKLOG_ACTION_TOKEN }}
+          token: ${{ secrets.WORKLOG_ACTION_PAT }}

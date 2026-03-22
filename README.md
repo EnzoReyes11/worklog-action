@@ -49,6 +49,8 @@ In **every source repository** that will use this action:
 3. Name: `WORKLOG_ACTION_TOKEN`
 4. Value: paste your PAT
 
+_Note: there is a script that can be used to do this. See [Bulk Setup Utility](#bulk-setup-utility) ._
+
 ### Step 4 — Add the workflow file to each source repository
 
 Create the following file in each source repository:
@@ -99,7 +101,7 @@ That's it. The next time `WORKLOG.md` or `PROJECT.md` is pushed on `main`, a PR 
 
 ## Bulk Setup Utility
 
-If you have many repositories to configure, use the included `sync.sh` script to set the PAT secret across all of them at once using the GitHub CLI.
+If you have many repositories to configure, use the included `bulk-setup.sh` script to set the PAT secret across all of them at once using the GitHub CLI.
 
 > **Note:** This script only sets the secret. You still need to add the workflow file (Step 4 above) to each repository manually or via automation.
 
@@ -131,8 +133,8 @@ If you have many repositories to configure, use the included `sync.sh` script to
 ### Run
 
 ```bash
-chmod +x sync.sh
-./sync.sh
+chmod +x bulk-setup.sh
+./bulk-setup.sh
 ```
 
 The script iterates through `repos.txt` and runs `gh secret set` for each repository.

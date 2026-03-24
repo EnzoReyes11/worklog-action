@@ -104,18 +104,8 @@ runs:
             cp ../PROJECT.md "$FINAL_FILENAME"
 
             # Append repo metadata block (referenced as shell env vars, not expressions)
-            cat >> "$FINAL_FILENAME" << EOF
-
----
-
-## 📊 Repository Info
-
-| Field | Value |
-|---|---|
-| Visibility | $REPO_VISIBILITY_LABEL |
-| Languages | $REPO_LANGUAGES |
-| Last updated | $REPO_LAST_UPDATED |
-EOF
+            printf '\n---\n\n## 📊 Repository Info\n\n| Field | Value |\n|---|---|\n| Visibility | %s |\n| Languages | %s |\n| Last updated | %s |\n' \
+              "$REPO_VISIBILITY_LABEL" "$REPO_LANGUAGES" "$REPO_LAST_UPDATED" >> "$FINAL_FILENAME"
 
             echo "Copied PROJECT.md (with repo metadata) to $FINAL_FILENAME"
 

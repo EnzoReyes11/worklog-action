@@ -16,6 +16,10 @@ inputs:
   token:
     description: 'A Personal Access Token (PAT) with repo scope for the target repository.'
     required: true
+  source_token:
+    description: 'A token with read access to the source repository (used to fetch repo metadata). Falls back to `token` if not provided.'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -25,6 +29,37 @@ runs:
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: Fetch Repo Metadata
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.source_token != '' && inputs.source_token || inputs.token }}
+        SOURCE_REPO: ${{ github.repository }}
+      run: |
+        echo "Fetching metadata for ${SOURCE_REPO}..."
+
+        # --- Visibility ---
+        VISIBILITY=$(gh api repos/${SOURCE_REPO} --jq '.visibility')
+        if [ "$VISIBILITY" = "private" ]; then
+          VISIBILITY_LABEL="Private"
+        else
+          VISIBILITY_LABEL="Public"
+        fi
+
+        # --- Languages (sanitize pipe chars to avoid Markdown table injection) ---
+        LANGUAGES=$(gh api repos/${SOURCE_REPO}/languages --jq 'to_entries | sort_by(-.value) | .[0:5] | map(.key) | join(", ")')
+        if [ -z "$LANGUAGES" ]; then
+          LANGUAGES="N/A"
+        fi
+        LANGUAGES="${LANGUAGES//|/}"
+
+        # --- Last Updated ---
+        LAST_UPDATED=$(gh api repos/${SOURCE_REPO} --jq '.pushed_at | split("T")[0]')
+
+        echo "REPO_VISIBILITY_LABEL=${VISIBILITY_LABEL}" >> $GITHUB_ENV
+        echo "REPO_LANGUAGES=${LANGUAGES}" >> $GITHUB_ENV
+        echo "REPO_LAST_UPDATED=${LAST_UPDATED}" >> $GITHUB_ENV
+        echo "Metadata fetched: visibility=${VISIBILITY_LABEL}, languages=${LANGUAGES}, last_updated=${LAST_UPDATED}"
 
     - name: Clone Target Repository
       shell: bash
@@ -39,28 +74,63 @@ runs:
 
     - name: Create Branch and Process Files
       shell: bash
+      env:
+        GH_REPOSITORY: ${{ github.repository }}
+        GH_SHA: ${{ github.sha }}
+        DEST_PATH: ${{ inputs.destination_path }}
       run: |
         cd target_repo_clone
-        REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
-        
+
+        # Sanitize repo name: allow only alphanumeric, hyphens, underscores, dots
+        RAW_REPO_NAME=$(echo "$GH_REPOSITORY" | cut -d'/' -f2)
+        REPO_NAME=$(echo "$RAW_REPO_NAME" | tr -cd '[:alnum:]._-')
+        if [ -z "$REPO_NAME" ]; then
+          echo "Error: could not derive a safe repo name from '$GH_REPOSITORY'"
+          exit 1
+        fi
+
+        # Sanitize destination path: allow only alphanumeric, hyphens, underscores, slashes, dots
+        SAFE_DEST_PATH=$(echo "$DEST_PATH" | tr -cd '[:alnum:]/_.-')
+        # Reject path traversal attempts
+        if echo "$SAFE_DEST_PATH" | grep -qE '(\.\./|^/)'; then
+          echo "Error: destination_path contains illegal path components: '$DEST_PATH'"
+          exit 1
+        fi
+
         # Create a single branch for this update
-        BRANCH_NAME="update/${REPO_NAME}-${{ github.sha }}"
-        git checkout -b $BRANCH_NAME
-        echo "✅ Created new branch: $BRANCH_NAME"
-        
+        BRANCH_NAME="update/${REPO_NAME}-${GH_SHA}"
+        git checkout -b "$BRANCH_NAME"
+        echo "Created new branch: $BRANCH_NAME"
+
         FILES_ADDED=0
 
         # --- RULE 1: PROCESS PROJECT.MD (OVERWRITE) ---
         if [ -f ../PROJECT.md ]; then
             echo "Processing PROJECT.md (overwrite mode)..."
-            DEST_DIR="${{ inputs.destination_path }}/project"
+            DEST_DIR="${SAFE_DEST_PATH}/project"
             mkdir -p "$DEST_DIR"
-            
+
             # The filename is now static, no suffix needed
             FINAL_FILENAME="$DEST_DIR/${REPO_NAME}-PROJECT.md"
-            
+
             cp ../PROJECT.md "$FINAL_FILENAME"
-            echo "Copied PROJECT.md to $FINAL_FILENAME"
+
+            # Append repo metadata block (referenced as shell env vars, not expressions)
+            cat >> "$FINAL_FILENAME" << EOF
+
+---
+
+## 📊 Repository Info
+
+| Field | Value |
+|---|---|
+| Visibility | $REPO_VISIBILITY_LABEL |
+| Languages | $REPO_LANGUAGES |
+| Avg. commits / week | $REPO_AVG_COMMITS_PER_WEEK |
+| Last updated | $REPO_LAST_UPDATED |
+EOF
+
+            echo "Copied PROJECT.md (with repo metadata) to $FINAL_FILENAME"
 
             FILES_ADDED=1
         fi
@@ -68,32 +138,34 @@ runs:
         # --- RULE 2: PROCESS WORKLOG.MD (OVERWRITE) ---
         if [ -f ../WORKLOG.md ]; then
             echo "Processing WORKLOG.md (overwrite mode)..."
-            DEST_DIR="${{ inputs.destination_path }}/worklog"
+            DEST_DIR="${SAFE_DEST_PATH}/worklog"
             mkdir -p "$DEST_DIR"
-            
+
             # The filename is now static, no suffix needed
             FINAL_FILENAME="$DEST_DIR/${REPO_NAME}-WORKLOG.md"
-            
+
             cp ../WORKLOG.md "$FINAL_FILENAME"
             echo "Copied WORKLOG.md to $FINAL_FILENAME"
 
             FILES_ADDED=1
         fi
-        
+
         echo "FILES_ADDED=$FILES_ADDED" >> $GITHUB_ENV
         echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
     - name: Commit and Push Changes
       if: env.FILES_ADDED == '1'
       shell: bash
+      env:
+        SOURCE_REPO: ${{ github.repository }}
       run: |
         cd target_repo_clone
         git add .
-        
+
         if ! git diff --staged --quiet; then
           echo "Content has changed. Committing and pushing..."
-          git commit -m "feat(docs): Sync project files from ${{ github.repository }}"
-          git push origin ${{ env.BRANCH_NAME }}
+          git commit -m "feat(docs): Sync project files from ${SOURCE_REPO}"
+          git push origin "$BRANCH_NAME"
         else
           echo "No net content changes detected. Skipping commit and PR."
           # Set flag to 0 so the PR step is skipped
@@ -105,10 +177,13 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
+        TARGET_REPO: ${{ inputs.target_repo }}
+        TARGET_BRANCH: ${{ inputs.target_branch }}
+        SOURCE_REPO: ${{ github.repository }}
       run: |
-        gh pr create --repo ${{ inputs.target_repo }} \
-           --title "Sync project files from ${{ github.repository }}" \
+        gh pr create --repo "$TARGET_REPO" \
+           --title "Sync project files from ${SOURCE_REPO}" \
            --body "Automated PR to sync updated project documentation." \
-           --base "${{ inputs.target_branch }}" \
-           --head "${{ env.BRANCH_NAME }}"
+           --base "$TARGET_BRANCH" \
+           --head "$BRANCH_NAME"
         echo "✅ Pull request created."

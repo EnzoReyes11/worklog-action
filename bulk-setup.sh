@@ -2,8 +2,10 @@
 
 # Load environment variables from .env if it exists
 if [ -f .env ]; then
-  # Load each line from .env, ignoring comments and exporting the variables
-  export $(grep -v '^#' .env | xargs)
+  set -a
+  # shellcheck source=.env
+  source .env
+  set +a
 fi
 
 # Secret configuration (if not set in .env or environment, fallback to defaults)
@@ -19,7 +21,7 @@ while IFS= read -r REPO; do
     echo "Adding secret $SECRET_NAME to $REPO..."
     # Use gh secret set with the --repo flag
     # The --body flag is used to pass the secret value directly
-    gh secret set $SECRET_NAME --repo $REPO --body "$SECRET_VALUE"
+    gh secret set "$SECRET_NAME" --repo "$REPO" --body "$SECRET_VALUE"
     if [ $? -eq 0 ]; then
         echo "Successfully added secret to $REPO"
     else

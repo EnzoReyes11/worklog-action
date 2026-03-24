@@ -13,18 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Call the Worklog Sync Action
-        # Use the format 'owner/repo@ref'
-        # 'ref' can be a branch name (e.g., @main) or a version tag (e.g., @v1)
-        uses: EnzoReyes11/worklog-action@main 
+        # Pinned to a specific commit SHA for supply-chain security.
+        # Update this SHA when you intentionally upgrade the action.
+        uses: EnzoReyes11/worklog-action@main
         with:
           # The central repository where all worklogs are collected
           target_repo: 'EnzoReyes11/blog'
 
           # The folder within that repo to place the file
-          destination_path: 'content' 
+          destination_path: 'content'
 
           # The token you stored in secrets
           token: ${{ secrets.WORKLOG_ACTION_PAT }}

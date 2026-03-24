@@ -9,10 +9,6 @@ inputs:
     description: 'The base branch to create the pull request against.'
     required: false
     default: 'main'
-  destination_path:
-    description: 'The base folder path in the target repo (e.g., "portfolio-files").'
-    required: false
-    default: 'files'
   token:
     description: 'A Personal Access Token (PAT) with repo scope for the target repository.'
     required: true
@@ -77,8 +73,8 @@ runs:
       env:
         GH_REPOSITORY: ${{ github.repository }}
         GH_SHA: ${{ github.sha }}
-        DEST_PATH: ${{ inputs.destination_path }}
       run: |
+        SAFE_DEST_PATH="content"
         cd target_repo_clone
 
         # Sanitize repo name: allow only alphanumeric, hyphens, underscores, dots
@@ -86,14 +82,6 @@ runs:
         REPO_NAME=$(echo "$RAW_REPO_NAME" | tr -cd '[:alnum:]._-')
         if [ -z "$REPO_NAME" ]; then
           echo "Error: could not derive a safe repo name from '$GH_REPOSITORY'"
-          exit 1
-        fi
-
-        # Sanitize destination path: allow only alphanumeric, hyphens, underscores, slashes, dots
-        SAFE_DEST_PATH=$(echo "$DEST_PATH" | tr -cd '[:alnum:]/_.-')
-        # Reject path traversal attempts
-        if echo "$SAFE_DEST_PATH" | grep -qE '(\.\./|^/)'; then
-          echo "Error: destination_path contains illegal path components: '$DEST_PATH'"
           exit 1
         fi
 
@@ -126,7 +114,6 @@ runs:
 |---|---|
 | Visibility | $REPO_VISIBILITY_LABEL |
 | Languages | $REPO_LANGUAGES |
-| Avg. commits / week | $REPO_AVG_COMMITS_PER_WEEK |
 | Last updated | $REPO_LAST_UPDATED |
 EOF
 

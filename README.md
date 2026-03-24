@@ -95,7 +95,6 @@ That's it. The next time `WORKLOG.md` or `PROJECT.md` is pushed on `main`, a PR 
 | `target_repo` | Yes | — | Central repo in `owner/repo` format |
 | `token` | Yes | — | PAT with `repo` scope for the target repo |
 | `target_branch` | No | `main` | Branch in the target repo to open the PR against |
-| `destination_path` | No | `files` | Base folder in the target repo where files land |
 
 ---
 
